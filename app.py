@@ -5,7 +5,6 @@ import os
 
 # Sayfa Ayarları (Telefona Tam Uyumlu)
 st.set_page_config(page_title="Oran Analiz Pro", page_icon="⚽", layout="centered")
-# Bilgisayar yolunu kaldırdık, relative (göreli) yol yaptık
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 EXCEL_PATH = os.path.join(BASE_DIR, "ORAN ANALİZ TABLOSU.xlsb")
@@ -111,21 +110,40 @@ if btn_analiz:
 
     benzerler['DURUM'] = benzerler.apply(get_durum, axis=1)
 
-    # İstatistikler
+    # İstatistik Hesaplamaları (Genişletilmiş)
+    benzerler['2y_e'] = benzerler['ms_e'] - benzerler['iy_e']
+    benzerler['2y_d'] = benzerler['ms_d'] - benzerler['iy_d']
+
     iy_05 = round((benzerler['iy_toplam'] >= 1).mean() * 100)
     iy_15 = round((benzerler['iy_toplam'] >= 2).mean() * 100)
+    iy_kg = round(((benzerler['iy_e'] > 0) & (benzerler['iy_d'] > 0)).mean() * 100)
+
     ms_25 = round((benzerler['ms_toplam'] >= 3).mean() * 100)
     ms_35 = round((benzerler['ms_toplam'] >= 4).mean() * 100)
-    kg_v = round(benzerler['kg_var'].mean() * 100)
+    ms_6plus = round((benzerler['ms_toplam'] >= 6).mean() * 100)
 
-    # İstatistik Kutuları
+    kg_v = round(benzerler['kg_var'].mean() * 100)
+    y2_kg = round(((benzerler['2y_e'] > 0) & (benzerler['2y_d'] > 0)).mean() * 100)
+
+    # İstatistik Kutuları (Telefona Tam Uyumlu 3 Satırlı Izgara)
     st.subheader("🎯 İstatistik Yüzdeleri")
-    m1, m2, m3, m4, m5 = st.columns(5)
-    m1.metric("İY 0.5+", f"%{iy_05}")
-    m2.metric("İY 1.5+", f"%{iy_15}")
-    m3.metric("MS 2.5+", f"%{ms_25}")
-    m4.metric("MS 3.5+", f"%{ms_35}")
-    m5.metric("KG VAR", f"%{kg_v}")
+    
+    # 1. Satır: İY Gol / KG Yüzdeleri
+    col1_m, col2_m, col3_m = st.columns(3)
+    col1_m.metric("İY 0.5+", f"%{iy_05}")
+    col2_m.metric("İY 1.5+", f"%{iy_15}")
+    col3_m.metric("İY KG VAR", f"%{iy_kg}")
+
+    # 2. Satır: MS Gol / 6+ Yüzdeleri
+    col4_m, col5_m, col6_m = st.columns(3)
+    col4_m.metric("MS 2.5+", f"%{ms_25}")
+    col5_m.metric("MS 3.5+", f"%{ms_35}")
+    col6_m.metric("6+ GOL 🔥", f"%{ms_6plus}")
+
+    # 3. Satır: Genel KG ve 2. Yarı KG
+    col7_m, col8_m = st.columns(2)
+    col7_m.metric("MS KG VAR", f"%{kg_v}")
+    col8_m.metric("2.Y KG VAR ⚽", f"%{y2_kg}")
 
     # En Olası Skorlar
     st.markdown("---")
