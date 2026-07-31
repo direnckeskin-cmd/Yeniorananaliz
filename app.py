@@ -3,36 +3,43 @@ import pandas as pd
 import numpy as np
 import os
 
-# Sayfa Ayarları (Telefona Tam Uyumlu)
+# Sayfa Ayarları
 st.set_page_config(page_title="Oran Analiz Pro", page_icon="⚽", layout="centered")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 EXCEL_PATH = os.path.join(BASE_DIR, "ORAN ANALİZ TABLOSU.xlsb")
 CACHE_PATH = os.path.join(BASE_DIR, "cache_data.pkl")
 
-# Streamlit Akıllı Önbellekleme (Işık Hızında Yükleme)
+# Streamlit Önbellekleme
 @st.cache_data(show_spinner=False)
 def load_data():
+    # 1. Öncelik: Önbellek Dosyası (cache_data.pkl)
     if os.path.exists(CACHE_PATH):
         try:
             return pd.read_pickle(CACHE_PATH)
-        except Exception:
+        except Exception as e:
+            st.warning(f"⚠️ pkl dosyası okunamadı, excel deneniyor... Hata: {e}")
             pass
     
-    try:
+    # 2. Öncelik: Excel Dosyası (ORAN ANALİZ TABLOSU.xlsb)
+    if os.path.exists(EXCEL_PATH):
         try:
-            df = pd.read_excel(EXCEL_PATH, engine='pyxlsb', header=1)
-        except Exception:
-            df = pd.read_excel(EXCEL_PATH, header=1)
+            try:
+                df = pd.read_excel(EXCEL_PATH, engine='pyxlsb', header=1)
+            except Exception:
+                df = pd.read_excel(EXCEL_PATH, header=1)
 
-        df['MS1'] = pd.to_numeric(df['MS1'], errors='coerce')
-        df['MSX'] = pd.to_numeric(df['MSX'], errors='coerce')
-        df['MS2'] = pd.to_numeric(df['MS2'], errors='coerce')
-        df_clean = df.dropna(subset=['MS1', 'MSX', 'MS2', 'İY SKOR', 'MS SKOR']).copy()
-        df_clean.to_pickle(CACHE_PATH)
-        return df_clean
-    except Exception as e:
-        return None
+            df['MS1'] = pd.to_numeric(df['MS1'], errors='coerce')
+            df['MSX'] = pd.to_numeric(df['MSX'], errors='coerce')
+            df['MS2'] = pd.to_numeric(df['MS2'], errors='coerce')
+            df_clean = df.dropna(subset=['MS1', 'MSX', 'MS2', 'İY SKOR', 'MS SKOR']).copy()
+            df_clean.to_pickle(CACHE_PATH)
+            return df_clean
+        except Exception as e:
+            st.error(f"Excel okunurken hata oluştu: {e}")
+            return None
+            
+    return None
 
 # Başlık
 st.markdown("<h2 style='text-align: center; color: #00FF7F;'>⚽ ORAN ANALİZ VE PATTERN MOTORU</h2>", unsafe_allow_html=True)
@@ -42,7 +49,10 @@ with st.spinner("📊 Veriler yükleniyor..."):
     df_clean = load_data()
 
 if df_clean is None:
-    st.error("❌ Excel verisi yüklenemedi! Lütfen dosya yolunu kontrol edin.")
+    mevcut_dosyalar = os.listdir(BASE_DIR)
+    st.error("❌ Veri dosyası bulunamadı!")
+    st.info(f"📂 Sunucu klasöründeki mevcut dosyalar: {mevcut_dosyalar}")
+    st.warning("Lütfen GitHub deposuna 'cache_data.pkl' veya 'ORAN ANALİZ TABLOSU.xlsb' dosyasını yüklediğinizden emin olun.")
     st.stop()
 
 st.success(f"✅ **{len(df_clean):,}** analize hazır maç hafızada!")
@@ -125,22 +135,19 @@ if btn_analiz:
     kg_v = round(benzerler['kg_var'].mean() * 100)
     y2_kg = round(((benzerler['2y_e'] > 0) & (benzerler['2y_d'] > 0)).mean() * 100)
 
-    # İstatistik Kutuları (Telefona Tam Uyumlu 3 Satırlı Izgara)
+    # İstatistik Kutuları
     st.subheader("🎯 İstatistik Yüzdeleri")
     
-    # 1. Satır: İY Gol / KG Yüzdeleri
     col1_m, col2_m, col3_m = st.columns(3)
     col1_m.metric("İY 0.5+", f"%{iy_05}")
     col2_m.metric("İY 1.5+", f"%{iy_15}")
     col3_m.metric("İY KG VAR", f"%{iy_kg}")
 
-    # 2. Satır: MS Gol / 6+ Yüzdeleri
     col4_m, col5_m, col6_m = st.columns(3)
     col4_m.metric("MS 2.5+", f"%{ms_25}")
     col5_m.metric("MS 3.5+", f"%{ms_35}")
     col6_m.metric("6+ GOL 🔥", f"%{ms_6plus}")
 
-    # 3. Satır: Genel KG ve 2. Yarı KG
     col7_m, col8_m = st.columns(2)
     col7_m.metric("MS KG VAR", f"%{kg_v}")
     col8_m.metric("2.Y KG VAR ⚽", f"%{y2_kg}")
@@ -153,7 +160,7 @@ if btn_analiz:
         pct = (count / len(benzerler)) * 100
         st.write(f"• **{skor}** — %{pct:.1f}")
 
-    # Maç Tablosu Özel Terminal Tasarımı (Birebir Masaüstü Terminal Görünümü)
+    # Terminal Tablo
     st.markdown("---")
     st.subheader("📋 Benzer Maçlar")
     
@@ -192,7 +199,6 @@ if btn_analiz:
 
     content_html = "<br>".join(lines)
 
-    # Katı terminal düzeni (Yazıların alt satıra kaymasını engeller, sağa kaydırma ekler)
     terminal_box = f"""
     <div style="
         background-color: #000000;
