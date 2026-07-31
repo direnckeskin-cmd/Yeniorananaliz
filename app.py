@@ -1,3 +1,12 @@
+import sys
+import subprocess
+
+# Streamlit Cloud'da pyxlsb eksikse otomatik yükleme yap (Kesin Çözüm)
+try:
+    import pyxlsb
+except ImportError:
+    subprocess.check_call([sys.executable, "-m", "pip", "install", "pyxlsb", "openpyxl"])
+
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -19,14 +28,12 @@ def find_excel_file():
 # Streamlit Önbellekleme
 @st.cache_data(show_spinner=False)
 def load_data():
-    # 1. Öncelik: Önbellek Dosyası varsa oku
     if os.path.exists(CACHE_PATH):
         try:
             return pd.read_pickle(CACHE_PATH)
         except Exception:
             pass
     
-    # 2. Öncelik: Klasördeki Excel/XLSB dosyasını otomatik yakala ve oku
     excel_path = find_excel_file()
     if excel_path:
         try:
