@@ -7,27 +7,33 @@ import os
 st.set_page_config(page_title="Oran Analiz Pro", page_icon="⚽", layout="centered")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-EXCEL_PATH = os.path.join(BASE_DIR, "ORAN ANALİZ TABLOSU.xlsb")
 CACHE_PATH = os.path.join(BASE_DIR, "cache_data.pkl")
+
+# Klasördeki Excel/XLSB Dosyasını Otomatik Bul
+def find_excel_file():
+    for f in os.listdir(BASE_DIR):
+        if f.lower().endswith(('.xlsb', '.xlsx', '.xls')) and not f.startswith('~$'):
+            return os.path.join(BASE_DIR, f)
+    return None
 
 # Streamlit Önbellekleme
 @st.cache_data(show_spinner=False)
 def load_data():
-    # 1. Öncelik: Önbellek Dosyası (cache_data.pkl)
+    # 1. Öncelik: Önbellek Dosyası varsa oku
     if os.path.exists(CACHE_PATH):
         try:
             return pd.read_pickle(CACHE_PATH)
-        except Exception as e:
-            st.warning(f"⚠️ pkl dosyası okunamadı, excel deneniyor... Hata: {e}")
+        except Exception:
             pass
     
-    # 2. Öncelik: Excel Dosyası (ORAN ANALİZ TABLOSU.xlsb)
-    if os.path.exists(EXCEL_PATH):
+    # 2. Öncelik: Klasördeki Excel/XLSB dosyasını otomatik yakala ve oku
+    excel_path = find_excel_file()
+    if excel_path:
         try:
             try:
-                df = pd.read_excel(EXCEL_PATH, engine='pyxlsb', header=1)
+                df = pd.read_excel(excel_path, engine='pyxlsb', header=1)
             except Exception:
-                df = pd.read_excel(EXCEL_PATH, header=1)
+                df = pd.read_excel(excel_path, header=1)
 
             df['MS1'] = pd.to_numeric(df['MS1'], errors='coerce')
             df['MSX'] = pd.to_numeric(df['MSX'], errors='coerce')
@@ -49,10 +55,7 @@ with st.spinner("📊 Veriler yükleniyor..."):
     df_clean = load_data()
 
 if df_clean is None:
-    mevcut_dosyalar = os.listdir(BASE_DIR)
-    st.error("❌ Veri dosyası bulunamadı!")
-    st.info(f"📂 Sunucu klasöründeki mevcut dosyalar: {mevcut_dosyalar}")
-    st.warning("Lütfen GitHub deposuna 'cache_data.pkl' veya 'ORAN ANALİZ TABLOSU.xlsb' dosyasını yüklediğinizden emin olun.")
+    st.error("❌ Veri dosyası okunamadı! Lütfen dosyayı kontrol edin.")
     st.stop()
 
 st.success(f"✅ **{len(df_clean):,}** analize hazır maç hafızada!")
@@ -120,7 +123,7 @@ if btn_analiz:
 
     benzerler['DURUM'] = benzerler.apply(get_durum, axis=1)
 
-    # İstatistik Hesaplamaları (Genişletilmiş)
+    # İstatistik Hesaplamaları
     benzerler['2y_e'] = benzerler['ms_e'] - benzerler['iy_e']
     benzerler['2y_d'] = benzerler['ms_d'] - benzerler['iy_d']
 
