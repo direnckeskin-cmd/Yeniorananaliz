@@ -1,12 +1,3 @@
-import sys
-import subprocess
-
-# Streamlit Cloud'da pyxlsb eksikse otomatik yükleme yap (Kesin Çözüm)
-try:
-    import pyxlsb
-except ImportError:
-    subprocess.check_call([sys.executable, "-m", "pip", "install", "pyxlsb", "openpyxl"])
-
 import streamlit as st
 import pandas as pd
 import numpy as np
@@ -227,3 +218,4 @@ if btn_analiz:
     </div>
     """
     st.markdown(terminal_box, unsafe_allow_html=True)
+
